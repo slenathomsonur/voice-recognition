@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .description {
+            color: #555;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        
+        .mic-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px;
+        }
+        
+        .mic-icon {
+            width: 100%;
+            height: 100%;
+            background-color: #6e8efb;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
+        }
+        
+        .mic-icon.listening {
+            background-color: #ff4d4d;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.6);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 77, 77, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+        }
+        
+        .controls {
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background-color: #6e8efb;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background-color: #5a7dfa;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .transcript-container {
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .transcript {
+            min-height: 100px;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .status {
+            margin-top: 15px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .language-select {
+            margin: 20px 0;
+            padding: 8px 15px;
+            border-radius: 50px;
+            border: 1px solid #ddd;
+            width: 200px;
+            font-size: 1rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                width: 95%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .mic-container {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .mic-icon {
+                font-size: 4rem;
+            }
+            
+            button {
+                padding: 10px 20px;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Recognition</h1>
+        <p class="description">Click the microphone and start speaking. Your words will appear below.</p>
+        
+        <div class="mic-container">
+            <div class="mic-icon" id="mic-icon">
+                <i>🎤</i>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <select class="language-select" id="language-select">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Spanish</option>
+                <option value="fr-FR">French</option>
+                <option value="de-DE">German</option>
+                <option value="it-IT">Italian</option>
+                <option value="ja-JP">Japanese</option>
+                <option value="ko-KR">Korean</option>
+                <option value="pt-BR">Portuguese</option>
+                <option value="ru-RU">Russian</option>
+                <option value="zh-CN">Chinese</option>
+            </select>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Listening</button>
+            <button id="stop-btn" disabled>Stop</button>
+            <button id="clear-btn">Clear</button>
+        </div>
+        
+        <div class="transcript-container">
+            <div class="transcript" id="transcript">Your speech will appear here...</div>
+        </div>
+        
+        <div class="status" id="status">Ready to listen...</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const transcript = document.getElementById('transcript');
+            const status = document.getElementById('status');
+            const micIcon = document.getElementById('mic-icon');
+            const languageSelect = document.getElementById('language-select');
+            
+            // Check if browser supports the Web Speech API
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                status.textContent = 'Your browser does not support speech recognition. Try Chrome or Edge.';
+                startBtn.disabled = true;
+                return;
+            }
+            
+            // Create speech recognition object
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            // Set recognition properties
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = languageSelect.value;
+            
+            let isListening = false;
+            
+            // Update language when selected
+            languageSelect.addEventListener('change', () => {
+                recognition.lang = languageSelect.value;
+            });
+            
+            // Start listening
+            startBtn.addEventListener('click', () => {
+                recognition.start();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                micIcon.classList.add('listening');
+                status.textContent = 'Listening...';
+                isListening = true;
+            });
+            
+            // Stop listening
+            stopBtn.addEventListener('click', () => {
+                recognition.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                micIcon.classList.remove('listening');
+                status.textContent = 'Stopped listening.';
+                isListening = false;
+            });
+            
+            // Clear transcript
+            clearBtn.addEventListener('click', () => {
+                transcript.textContent = '';
+                status.textContent = 'Transcript cleared.';
+            });
+            
+            // Toggle listening on mic icon click
+            micIcon.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    micIcon.classList.remove('listening');
+                    status.textContent = 'Stopped listening.';
+                    isListening = false;
+                } else {
+                    recognition.start();
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    micIcon.classList.add('listening');
+                    status.textContent = 'Listening...';
+                    isListening = true;
+                }
+            });
+            
+            // Process results
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    transcript.innerHTML += `<p>${finalTranscript}</p>`;
+                }
+                
+                if (interimTranscript) {
+                    status.textContent = `Heard: ${interimTranscript}`;
+                }
+                
+                // Auto-scroll to bottom
+                transcript.parentElement.scrollTop = transcript.parentElement.scrollHeight;
+            };
+            
+            // Handle errors
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                status.textContent = `Error: ${event.error}`;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                micIcon.classList.remove('listening');
+                isListening = false;
+            };
+            
+            recognition.onend = () => {
+                if (isListening) {
+                    // If we were listening but recognition ended, try to restart
+                    recognition.start();
+                    status.textContent = 'Still listening...';
+                }
+            };
+        });
+    </script>
+</body>
+</html>
